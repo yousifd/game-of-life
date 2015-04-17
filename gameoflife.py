@@ -95,7 +95,7 @@ class Field(object):
 					print('[ ]'),
 			print('\n')
 
-	def update(self):
+	def update(self, dt):
 		for row in self.cells:
 			for cell in row:
 				if cell.getLiving() == 3:
@@ -105,20 +105,27 @@ class Field(object):
 				else:
 					cell.futureState = 0
 
+	    # WTF is this for when you can directly set the state in the previous loop?
 		for row in self.cells:
 			for cell in row:
 				cell.state = cell.futureState
+				# Update the visual cells when you change the state
 				cell.update(self.batch)
 
 	def reviveCells(self, listOfTupels):
 		for t in listOfTupels:
 			self.cells[t[1]][t[0]].state = 1
+			# Update the cells the moment you set the values
 			self.cells[t[1]][t[0]].update(self.batch)
 
 # Set up window and keyboard
 window = Window(width=WIDTH, height=HEIGHT)
 
 def main(dt):
+	# Get User input for the size
+	# Update the width and the Height * 36
+	# Ask for the preset values for the blocks
+
 	field = Field(10, 10)
 	field.reviveCells([(1,5), (2,5), (3,5), (4,5),(5,5),(6,5),(6,5),(7,5),(8,5),(9,5),(10,5)])
 
@@ -132,7 +139,10 @@ def main(dt):
 		if symbol == key.SPACE:
 			field.update()
 
+	# clock.schedule_interval(field.update, 0.5)
+
 clock.schedule_once(main, 0)
 
 if __name__ == '__main__':
+	# main(0)
 	app.run()
