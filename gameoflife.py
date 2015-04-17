@@ -1,7 +1,26 @@
+from pyglet import app
+from pyglet import clock
+from pyglet import image
+from pyglet import sprite
+from pyglet import graphics
+from pyglet.window import Window
+from pyglet.window import key
+
+WIDTH = 360
+HEIGHT = 360
+
+# Import Image
+onImage = image.load("Yellow.png")
+offImage = image.load("Red.png")
+
 class Cell(object):
-	def __init__(self):
+	def __init__(self, x, y, batch):
 		self.state = 0
 		self.futureState = 0
+		self.x = x
+		self.y = y
+
+		self.image = sprite.Sprite(offImage, x=self.x, y=self.y, batch=batch)
 
 		self.surroundings = []
 
@@ -12,11 +31,30 @@ class Cell(object):
 				living += 1
 		return living
 
+	def update(self, batch):
+		self.x = self.image.x
+		self.y = self.image.y
+		if self.state == 1:
+			# Set image to on
+			# check if you can just change the image for the sprite instead of creating a new one
+			self.image.delete()
+			self.image = sprite.Sprite(onImage, x=self.x, y=self.y, batch=batch)
+		else:
+			# Set image to off
+			self.image.delete()
+			self.image = sprite.Sprite(offImage, x=self.x, y=self.y, batch=batch)
+		print("Set State to %i") % self.state
+
 class Field(object):
 	def __init__(self, i, j):
+		self.batch = graphics.Batch()
+
+		# use this to update the location of each cell
+		self.x = 0
+		self.y = HEIGHT - 36
 		self.i = i + 2
 		self.j = j + 2
-		self.cells = [[Cell() for x in range(self.i)] for x in range(self.j)]
+		self.cells = [[Cell(self.x, self.y, self.batch) for x in range(self.i)] for x in range(self.j)]
 		for k in range(i):
 			y = k + 1
 			for h in range(j):
@@ -29,6 +67,11 @@ class Field(object):
 				self.cells[y][x].surroundings.append(self.cells[y+1][x+1])
 				self.cells[y][x].surroundings.append(self.cells[y+1][x])
 				self.cells[y][x].surroundings.append(self.cells[y+1][x-1])
+				self.cells[y][x].image.x = self.x
+				self.cells[y][x].image.y = self.y
+				self.x += 36
+			self.x = 0
+			self.y -= 36
 
 	def liveCells(self):
 		count = 0
@@ -36,6 +79,7 @@ class Field(object):
 			for j in range(self.j):
 				if self.cells[i][j].state == 1:
 					count += 1
+		return count
 
 	def deadCells(self):
 		return abs((self.i * self.j) - liveCells)
@@ -64,20 +108,31 @@ class Field(object):
 		for row in self.cells:
 			for cell in row:
 				cell.state = cell.futureState
+				cell.update(self.batch)
 
 	def reviveCells(self, listOfTupels):
 		for t in listOfTupels:
 			self.cells[t[1]][t[0]].state = 1
+			self.cells[t[1]][t[0]].update(self.batch)
 
-def main():
+# Set up window and keyboard
+window = Window(width=WIDTH, height=HEIGHT)
+
+def main(dt):
 	field = Field(10, 10)
-	field.reviveCells([(0,5), (2,5), (3,5), (4,5),(5,5),(6,5),(6,5),(7,5),(8,5),(9,5),(10,5)])
+	field.reviveCells([(1,5), (2,5), (3,5), (4,5),(5,5),(6,5),(6,5),(7,5),(8,5),(9,5),(10,5)])
 
-	for i in range(5):
-		print 'step number: ', i
-		field.display()
-		field.update()
+	@window.event
+	def on_draw():
+		window.clear()
+		field.batch.draw()
 
+	@window.event
+	def on_key_press(symbol, modifiers):
+		if symbol == key.SPACE:
+			field.update()
+
+clock.schedule_once(main, 0)
 
 if __name__ == '__main__':
-	main()
+	app.run()
